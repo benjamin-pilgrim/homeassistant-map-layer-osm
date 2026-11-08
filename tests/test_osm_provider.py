@@ -28,7 +28,7 @@ class FakeResponse:
         self._body = body
         self.headers = {"Content-Type": content_type}
 
-    async def __aenter__(self) -> "FakeResponse":
+    async def __aenter__(self) -> FakeResponse:
         return self
 
     async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
@@ -56,7 +56,9 @@ class OpenStreetMapDarkProviderTest(unittest.TestCase):
     """OpenStreetMap provider behavior."""
 
     def test_metadata_exposes_dark_gray_xyz_layer(self) -> None:
-        provider = OpenStreetMapDarkProvider(FakeSession(FakeResponse()))
+        provider = OpenStreetMapDarkProvider(
+            FakeSession(FakeResponse()), api_key="test-key"
+        )
 
         layers = asyncio.run(provider.async_list_layers())
 
@@ -77,7 +79,7 @@ class OpenStreetMapDarkProviderTest(unittest.TestCase):
 
     def test_fetches_tile_from_cartodb_dark_matter(self) -> None:
         session = FakeSession(FakeResponse(body=b"\x89PNG\r\n\x1a\n"))
-        provider = OpenStreetMapDarkProvider(session)
+        provider = OpenStreetMapDarkProvider(session, api_key="test-key")
 
         tile = asyncio.run(
             provider.async_get_tile(
@@ -90,15 +92,40 @@ class OpenStreetMapDarkProviderTest(unittest.TestCase):
             )
         )
 
-        self.assertEqual(session.urls, [osm_dark_tile_url(z=3, x=4, y=2)])
+        self.assertEqual(
+            session.urls, [osm_dark_tile_url(z=3, x=4, y=2, api_key="test-key")]
+        )
         self.assertIn("User-Agent", session.headers[0])
         self.assertEqual(tile.status, 200)
         self.assertEqual(tile.content, b"\x89PNG\r\n\x1a\n")
         self.assertEqual(tile.content_type, "image/png")
         self.assertEqual(tile.cache_seconds, 300)
 
+    def test_rejects_missing_key_before_requesting_watermarked_tiles(self) -> None:
+        with self.assertRaises(ValueError):
+            OpenStreetMapDarkProvider(FakeSession(FakeResponse()), api_key="  ")
+
+    def test_key_is_sent_upstream_but_not_exposed_in_metadata(self) -> None:
+        session = FakeSession(FakeResponse())
+        provider = OpenStreetMapDarkProvider(session, api_key="private&key=+")
+        tile = asyncio.run(
+            provider.async_get_tile(
+                OSM_DARK_LAYER_ID, z=3, x=4, y=2, dimensions={}, options={}
+            )
+        )
+        self.assertEqual(tile.status, 200)
+        self.assertEqual(
+            session.urls,
+            [
+                "https://a.basemaps.cartocdn.com/dark_all/3/4/2.png?key=private%26key%3D%2B"
+            ],
+        )
+        self.assertNotIn("private", repr(asyncio.run(provider.async_list_layers())))
+
     def test_upstream_404_returns_empty_tile_response(self) -> None:
-        provider = OpenStreetMapDarkProvider(FakeSession(FakeResponse(status=404)))
+        provider = OpenStreetMapDarkProvider(
+            FakeSession(FakeResponse(status=404)), api_key="test-key"
+        )
 
         tile = asyncio.run(
             provider.async_get_tile(
@@ -114,7 +141,9 @@ class OpenStreetMapDarkProviderTest(unittest.TestCase):
         self.assertEqual(tile.status, 204)
 
     def test_upstream_error_returns_bad_gateway(self) -> None:
-        provider = OpenStreetMapDarkProvider(FakeSession(FakeResponse(status=500)))
+        provider = OpenStreetMapDarkProvider(
+            FakeSession(FakeResponse(status=500)), api_key="test-key"
+        )
 
         tile = asyncio.run(
             provider.async_get_tile(
@@ -135,11 +164,10 @@ class OpenStreetMapDarkUrlTest(unittest.TestCase):
 
     def test_uses_cartodb_dark_all_xyz_template(self) -> None:
         self.assertEqual(
-            osm_dark_tile_url(z=3, x=4, y=2),
-            "https://a.basemaps.cartocdn.com/dark_all/3/4/2.png",
+            osm_dark_tile_url(z=3, x=4, y=2, api_key="test-key"),
+            "https://a.basemaps.cartocdn.com/dark_all/3/4/2.png?key=test-key",
         )
 
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -1,12 +1,14 @@
 {
   "domain": "map_layer_osm",
   "name": "Map Layer OpenStreetMap",
-  "dependencies": ["map_layer"],
+  "dependencies": [
+    "map_layer"
+  ],
   "codeowners": [],
   "config_flow": true,
   "documentation": "https://github.com/benjamin-pilgrim/homeassistant-map-layer-osm",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/benjamin-pilgrim/homeassistant-map-layer-osm/issues",
   "requirements": [],
-  "version": "0.0.1"
+  "version": "0.0.2"
 }

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any, Protocol
+from urllib.parse import urlencode
 
 from custom_components.map_layer import MapLayerMetadata, TileResponse
 
@@ -28,10 +29,13 @@ class OpenStreetMapDarkProvider:
 
     provider_id = OSM_DARK_PROVIDER_ID
 
-    def __init__(self, session: ClientSession) -> None:
+    def __init__(self, session: ClientSession, *, api_key: str) -> None:
         """Initialize the provider with a Home Assistant HTTP client session."""
 
+        if not api_key.strip():
+            raise ValueError("A CARTO Basemaps API key is required")
         self._session = session
+        self._api_key = api_key.strip()
 
     async def async_list_layers(self) -> list[MapLayerMetadata]:
         """Return the public dark-gray OpenStreetMap layer metadata."""
@@ -68,7 +72,7 @@ class OpenStreetMapDarkProvider:
         if layer_id != OSM_DARK_LAYER_ID:
             return TileResponse(status=404)
 
-        url = osm_dark_tile_url(z=z, x=x, y=y)
+        url = osm_dark_tile_url(z=z, x=x, y=y, api_key=self._api_key)
         try:
             async with self._session.get(
                 url, headers={"User-Agent": OSM_DARK_USER_AGENT}
@@ -91,9 +95,9 @@ class OpenStreetMapDarkProvider:
             return TileResponse(status=502)
 
 
-def osm_dark_tile_url(*, z: int, x: int, y: int) -> str:
+def osm_dark_tile_url(*, z: int, x: int, y: int, api_key: str) -> str:
     """Return the upstream CARTO Dark Matter tile URL for XYZ coordinates."""
 
     subdomain = OSM_DARK_SUBDOMAINS[(z + x + y) % len(OSM_DARK_SUBDOMAINS)]
-    return f"https://{subdomain}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
-
+    query = urlencode({"key": api_key})
+    return f"https://{subdomain}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png?{query}"

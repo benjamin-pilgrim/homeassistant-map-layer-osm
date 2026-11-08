@@ -3,11 +3,33 @@
     "step": {
       "user": {
         "title": "Map Layer OpenStreetMap",
-        "description": "Set up a public OpenStreetMap-based dark raster tile layer."
+        "description": "Enter your CARTO Basemaps API key to display the dark map. Get a key at https://www.carto.com/basemaps/apikey/. The key stays on your Home Assistant server.",
+        "data": {
+          "api_key": "CARTO Basemaps API key"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Map Layer OpenStreetMap",
+        "description": "Enter your CARTO Basemaps API key to display the dark map. Get a key at https://www.carto.com/basemaps/apikey/. The key stays on your Home Assistant server.",
+        "data": {
+          "api_key": "CARTO Basemaps API key"
+        }
+      },
+      "reconfigure": {
+        "title": "Map Layer OpenStreetMap",
+        "description": "Enter your CARTO Basemaps API key to display the dark map. Get a key at https://www.carto.com/basemaps/apikey/. The key stays on your Home Assistant server.",
+        "data": {
+          "api_key": "CARTO Basemaps API key"
+        }
       }
     },
     "abort": {
-      "single_instance_allowed": "Map Layer OpenStreetMap is already configured."
+      "single_instance_allowed": "Map Layer OpenStreetMap is already configured.",
+      "reauth_successful": "API key saved. The integration has been reloaded.",
+      "reconfigure_successful": "API key updated. The integration has been reloaded."
+    },
+    "error": {
+      "api_key_required": "Enter a CARTO Basemaps API key."
     }
   }
 }
